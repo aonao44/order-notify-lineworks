@@ -1,0 +1,31 @@
+api_version = "2024-01"
+
+[[extensions]]
+uid = "24edd70b-cd98-855d-c617-226437a0d4f8c9fd7bd3"
+type = "flow_action"
+name = "Send LINE WORKS Message"
+handle = "send-lineworks-message"
+description = "LINE WORKS のトークルームにメッセージを送信します"
+runtime_url = "https://order-notify-lineworks.fly.dev/api/flow-action"
+
+[extensions.settings]
+  [[extensions.settings.fields]]
+  key = "bot_id"
+  name = "Bot ID"
+  description = "メッセージを送信する Bot の ID"
+  type = "single_line_text_field"
+  required = true
+
+  [[extensions.settings.fields]]
+  key = "channel_id"
+  name = "Channel ID"
+  description = "メッセージを送信するトークルームの ID"
+  type = "single_line_text_field"
+  required = true
+
+  [[extensions.settings.fields]]
+  key = "message"
+  name = "Message"
+  description = "送信するメッセージ本文（Liquid 変数を使用可能）"
+  type = "multi_line_text_field"
+  required = true

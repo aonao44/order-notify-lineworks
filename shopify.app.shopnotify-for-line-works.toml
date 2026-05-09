@@ -1,0 +1,19 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "025a11a0ffb9624d083e3f483998d7f6"
+name = "ShopNotify for LINE WORKS"
+application_url = "https://example.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_fulfillments,read_orders,read_shipping"
+
+[auth]
+redirect_urls = [ "https://example.com/api/auth" ]

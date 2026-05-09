@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Configuration {
+  id             String   @id @default(uuid())
+  shop           String   @unique
+  clientId       String
+  clientSecret   String
+  serviceAccount String
+  privateKey     String
+  testBotId      String?
+  testChannelId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model MessageLog {
+  id               String   @id @default(uuid())
+  shop             String
+  botId            String
+  channelId        String
+  message          String   // 最初の200文字のみ保存
+  status           String   // "success" | "failed"
+  errorMessage     String?
+  flowExecutionKey String?  // Flow 実行 ID（重複排除用）
+  source           String   @default("flow") // "flow" | "webhook"
+  topic            String?  // Webhook の場合のトピック
+  webhookEventId   String?  // WebhookEvent.id への参照
+  createdAt        DateTime @default(now())
+
+  @@index([shop, createdAt])
+  @@index([shop, flowExecutionKey])
+  @@index([shop, source])
+}
+
+model RetryJob {
+  id               String   @id @default(uuid())
+  shop             String
+  botId            String
+  channelId        String
+  message          String   // 全文保存
+  targetType       String   // "user" | "channel"
+  status           String   @default("pending") // "pending" | "processing" | "completed" | "dead"
+  attemptCount     Int      @default(0)
+  maxAttempts      Int      @default(5)
+  nextAttemptAt    DateTime
+  lastError        String?
+  flowExecutionKey String   // Flow 実行 ID または webhook:{eventId}
+  source           String   @default("flow") // "flow" | "webhook"
+  topic            String?  // Webhook の場合のトピック
+  webhookEventId   String?  // WebhookEvent.id への参照
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([shop, flowExecutionKey])
+  @@index([status, nextAttemptAt])
+}
+
+// Webhook 設定（shop ごと、topic ごと）
+model WebhookSetting {
+  id        String   @id @default(uuid())
+  shop      String
+  topic     String   // orders/create, orders/paid, fulfillments/create, orders/cancelled
+  enabled   Boolean  @default(false)
+  botId     String?
+  channelId String?
+  template  String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shop, topic])
+  @@index([shop])
+}
+
+// Shopify 側の Webhook 登録状態
+model ShopifyWebhookSubscription {
+  id             String   @id @default(uuid())
+  shop           String
+  topic          String
+  subscriptionId String   // Shopify REST API の webhook ID
+  callbackUrl    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([shop, topic])
+}
+
+// 冪等性チェック用（重複配信防止）
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  shop        String
+  topic       String
+  webhookId   String    // X-Shopify-Webhook-Id ヘッダー
+  orderId     String?   // 注文ID（時間窓ベースの重複チェック用）
+  status      String    @default("processing") // processing | succeeded | failed | skipped
+  payloadHash String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@unique([shop, webhookId])
+  @@index([shop, topic])
+  @@index([shop, topic, orderId, createdAt])
+}
